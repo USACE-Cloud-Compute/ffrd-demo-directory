@@ -6,7 +6,12 @@ are added to the built site (nothing is written into the source tree):
 * ``assets/tree.json``   - drives the interactive folder browser on the home page
 * ``assets/<zip_name>``  - the empty template directory, description files included
 
-``build_tree`` and ``build_zip`` are plain Python with no MkDocs dependency, so they
+and does the same, names only, for the separate templates folder ``docs/<templates_root>``:
+
+* ``assets/templates-tree.json`` - drives the folder and file tree in the Templates section
+* ``assets/<templates_zip>``     - that folder as-is (hidden files such as .gitkeep left out)
+
+The build functions are plain Python with no MkDocs dependency, so they
 can also be run on their own: ``python hooks/ffrd_site.py --out build-assets``.
 Configuration lives under ``extra.ffrd`` in mkdocs.yml.
 """
@@ -24,10 +29,12 @@ import markdown
 DEFAULTS = {
     "template_root": "basin-name",  # folder under docs/ that is the template
     "desc_file": "index.md",        # description file inside every folder
-    "zip_name": "ffrd-template.zip",
+    "zip_name": "ffrd-directory-structure.zip",
     "zip_desc_file": "README.md",   # what desc_file is renamed to inside the zip
     "zip_exclude": [".pages"],      # MkDocs plumbing, not part of the template
     "placeholder": "ffrd directory structure. see parent directory for description of intended use",
+    "templates_root": "ffrd-templates",  # folder under docs/ holding the downloadable templates
+    "templates_zip": "ffrd-templates.zip",
 }
 _MD_EXT = ["tables", "sane_lists", "admonition"]
 
@@ -177,6 +184,55 @@ def build_zip(docs_dir: Path, cfg: dict) -> bytes:
 
 
 # --------------------------------------------------------------------------- #
+# Templates folder: names only, copied as-is
+# --------------------------------------------------------------------------- #
+def _hidden(rel: Path) -> bool:
+    """Dotfiles (.gitkeep keeps an otherwise empty folder in git) are not templates."""
+    return any(part.startswith(".") for part in rel.parts)
+
+
+def _plain_node(folder: Path, root: Path) -> dict:
+    items = sorted((p for p in folder.iterdir() if not _hidden(p.relative_to(root))),
+                   key=lambda p: p.name.lower())
+    return {
+        "name": folder.name,
+        "path": "/".join(folder.relative_to(root).parts),
+        "files": [p.name for p in items if p.is_file()],
+        "children": [_plain_node(p, root) for p in items if p.is_dir()],
+    }
+
+
+def build_templates_tree(docs_dir: Path, cfg: dict) -> dict:
+    cfg = {**DEFAULTS, **cfg}
+    root = Path(docs_dir) / cfg["templates_root"]
+    node = (_plain_node(root, root) if root.is_dir()
+            else {"name": cfg["templates_root"], "path": "", "files": [], "children": []})
+    return {"root": node, "zip": cfg["templates_zip"]}
+
+
+def build_templates_zip(docs_dir: Path, cfg: dict) -> bytes:
+    cfg = {**DEFAULTS, **cfg}
+    top = cfg["templates_root"]
+    root = Path(docs_dir) / top
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(_dir_entry(top), b"")
+        for path in sorted(root.rglob("*")) if root.is_dir() else []:
+            rel = path.relative_to(root)
+            if _hidden(rel):
+                continue
+            arc = "/".join((top, *rel.parts))
+            if path.is_dir():
+                zf.writestr(_dir_entry(arc), b"")
+            else:
+                info = zipfile.ZipInfo(arc, _EPOCH)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                info.external_attr = 0o100644 << 16
+                zf.writestr(info, path.read_bytes())
+    return buf.getvalue()
+
+
+# --------------------------------------------------------------------------- #
 # MkDocs glue
 # --------------------------------------------------------------------------- #
 def on_files(files, config):
@@ -191,9 +247,13 @@ def on_files(files, config):
         f"({c['own']} described, {c['inherited']} via parent page, "
         f"{c['placeholder']} placeholder only, {c['missing']} empty)"
     )
+    templates = build_templates_tree(docs_dir, cfg)
+    print(f"INFO    -  ffrd_site: templates folder '{cfg['templates_root']}' -> {cfg['templates_zip']}")
     payload = (
         ("assets/tree.json", json.dumps(tree, ensure_ascii=False, separators=(",", ":"))),
         (f"assets/{cfg['zip_name']}", build_zip(docs_dir, cfg)),
+        ("assets/templates-tree.json", json.dumps(templates, ensure_ascii=False, separators=(",", ":"))),
+        (f"assets/{cfg['templates_zip']}", build_templates_zip(docs_dir, cfg)),
     )
     for src_uri, content in payload:
         files.append(File.generated(config, src_uri, content=content))
@@ -201,7 +261,7 @@ def on_files(files, config):
 
 
 if __name__ == "__main__":  # standalone use, no MkDocs needed
-    ap = argparse.ArgumentParser(description="Write tree.json and the template zip.")
+    ap = argparse.ArgumentParser(description="Write the tree JSON files and the zips.")
     ap.add_argument("--docs", default="docs")
     ap.add_argument("--out", default="build-assets")
     a = ap.parse_args()
@@ -209,4 +269,6 @@ if __name__ == "__main__":  # standalone use, no MkDocs needed
     out.mkdir(parents=True, exist_ok=True)
     (out / "tree.json").write_text(json.dumps(build_tree(Path(a.docs), {})), encoding="utf-8")
     (out / DEFAULTS["zip_name"]).write_bytes(build_zip(Path(a.docs), {}))
+    (out / "templates-tree.json").write_text(json.dumps(build_templates_tree(Path(a.docs), {})), encoding="utf-8")
+    (out / DEFAULTS["templates_zip"]).write_bytes(build_templates_zip(Path(a.docs), {}))
     print(f"wrote {out}/")

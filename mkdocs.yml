@@ -1,4 +1,4 @@
-site_name: FFRD Demo Directory
+site_name: FFRD Directory Structure and Templates
 site_url: https://corbylewis.github.io/ffrd-demo-directory/
 
 theme:
@@ -33,17 +33,22 @@ extra:
   generator: false
   ffrd:
     template_root: basin-name
-    zip_name: ffrd-template.zip
+    zip_name: ffrd-directory-structure.zip
     zip_desc_file: README.md   # index.md is renamed to this inside the zip
     # Text written into folders that have no description of their own yet. The site treats
     # a page containing only this text as "not described" (and falls back to the parent's
     # section for that folder if there is one). fix_titles.py reads it from here too.
     placeholder: "ffrd directory structure. see parent directory for description of intended use"
+    # Separate folder of downloadable templates, shown names-only in the Templates section
+    templates_root: ffrd-templates
+    templates_zip: ffrd-templates.zip
 
 docs_dir: docs
 use_directory_urls: true
 
 # The folder descriptions are data for the browser on the home page and for the zip
-# (hooks/ffrd_site.py reads them straight from docs/), not pages of their own.
+# (hooks/ffrd_site.py reads them straight from docs/), not pages of their own. The same
+# goes for the templates folder, which is only offered as a zip.
 exclude_docs: |
   basin-name/
+  ffrd-templates/

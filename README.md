@@ -1,9 +1,16 @@
-# ffrd-demo-directory
+# FFRD Standard Directory and Templates
 
-Demo of the standard directory structure for FFRD projects, with a description of what
-belongs in each folder.
+This site provides:
 
-Site: https://usace-cloud-compute.github.io/ffrd-demo-directory/
+1. The standard directory structure for FFRD projects
+    - description of intent for each folder and subfolder
+    - downloadable template directory
+
+2.  FFRD SOP templates and useful tools
+     - QC Checklists, Documentation Checklists, etc
+     - Useful tools
+
+Site: https://usace-cloud-compute.github.io/ffrd-templates/
 
 ## How it works
 
@@ -14,10 +21,17 @@ Site: https://usace-cloud-compute.github.io/ffrd-demo-directory/
 - `hooks/ffrd_site.py` runs on every build and generates, without touching `docs/`:
   - `assets/tree.json`, which feeds the interactive folder browser on the home page
     (`docs/javascripts/ffrd-tree.js`);
-  - `assets/ffrd-template.zip`, the empty template. `index.md` becomes `README.md` in
+  - `assets/ffrd-directory-structure.zip`, the empty template. `index.md` becomes `README.md` in
     every folder. Empty folders survive the download because the zip
     lists every folder explicitly and each one contains a `README.md`.
-- Settings (template folder, zip name, README name) are under `extra.ffrd` in `mkdocs.yml`.
+  - `assets/templates-tree.json` and `assets/ffrd-templates.zip`, from `docs/ffrd-templates/`
+    (see below).
+- `docs/ffrd-templates/` is a separate folder of downloadable templates, unrelated to the
+  `basin-name` structure. Add folders and files there as they should appear in the download;
+  the Templates section of the home page lists them by name, and the zip contains them
+  as-is. Files and folders starting with `.` are left out, so a `.gitkeep` can hold an
+  otherwise empty folder in git.
+- Settings (template folders, zip names, README name) are under `extra.ffrd` in `mkdocs.yml`.
 
 ## Editing
 

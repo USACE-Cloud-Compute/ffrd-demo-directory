@@ -2,7 +2,9 @@
  * Reads assets/tree.json (generated at build time by hooks/ffrd_site.py) and renders
  * a collapsible tree plus a description panel into <div id="ffrd-tree">.
  * Deep links: #f=basin-data/dams selects that folder. Add ?audit to the URL to flag
- * folders that still have no description. */
+ * folders that still have no description.
+ * Also renders the names-only folder and file tree of the separate templates folder
+ * (assets/templates-tree.json) into <div id="ffrd-files">. */
 (function () {
   "use strict";
 
@@ -40,7 +42,7 @@
     var bar = el("div", "ffrd__bar");
     var search = el("input", "ffrd__search");
     search.type = "search";
-    search.placeholder = "Filter folders, e.g. hot-fix or levee";
+    search.placeholder = "Filter folders, e.g. hydraulics or levee";
     search.setAttribute("aria-label", "Filter folders");
     var expand = el("button", "ffrd__btn", "Expand all");
     var collapse = el("button", "ffrd__btn", "Collapse all");
@@ -80,7 +82,7 @@
       var row, kids = null;
 
       function fill(target) {
-        target.append(el("span", "ffrd__name", node.name));
+        target.append(el("span", "ffrd-icon ffrd-icon--folder"), el("span", "ffrd__name", node.name));
         if (audit && node.status !== "own") {
           target.append(el("span", "ffrd__flag", FLAGS[node.status]));
         }
@@ -255,7 +257,78 @@
     else panel.append(el("p", "ffrd__empty", "Select a folder to see what belongs in it."));
   }
 
-  if (window.document$ && document$.subscribe) document$.subscribe(init);
-  else if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
-  else init();
+  /* ---- Templates section: folders and files only ---- */
+  function initFiles() {
+    var host = document.getElementById("ffrd-files");
+    if (!host || host.dataset.ready) return;
+    host.dataset.ready = "1";
+    host.classList.add("ffrd", "ffrd-files");   // .ffrd supplies the shared colours
+    var base = typeof __md_scope !== "undefined" ? __md_scope : location.href;
+
+    fetch(new URL(host.dataset.src || "assets/tree.json", base))
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (data) { renderFiles(host, data); })
+      .catch(function () { host.textContent = "The template tree could not be loaded. Download the zip to see it."; });
+  }
+
+  function renderFiles(host, data) {
+    if (!data.root.children.length && !data.root.files.length) {
+      host.replaceChildren(el("p", "ffrd__empty", "No templates have been added yet."));
+      return;
+    }
+    var toggles = [];   // [row, kids] for every folder that has something inside
+    var folders = 0, files = 0;
+
+    function setOpen(t, open) {
+      t[1].hidden = !open;
+      t[0].setAttribute("aria-expanded", open ? "true" : "false");
+    }
+
+    function build(node, depth) {
+      folders++;
+      var li = el("li");
+      var empty = !node.children.length && !node.files.length;
+      var row = el(empty ? "span" : "button", "ffrd-files__row is-folder");
+      row.append(el("span", "ffrd-icon ffrd-icon--folder"), el("span", null, node.name));
+      li.append(row);
+      if (empty) return li;
+
+      row.type = "button";
+      var kids = el("ul", "ffrd-files__kids");
+      node.children.forEach(function (c) { kids.append(build(c, depth + 1)); });
+      node.files.forEach(function (name) {
+        files++;
+        var f = el("li");
+        var frow = el("span", "ffrd-files__row is-file");
+        frow.append(el("span", "ffrd-icon ffrd-icon--file"), el("span", null, name));
+        f.append(frow);
+        kids.append(f);
+      });
+      li.append(kids);
+      var t = [row, kids];
+      toggles.push(t);
+      setOpen(t, depth === 0);
+      row.addEventListener("click", function () { setOpen(t, kids.hidden); });
+      return li;
+    }
+
+    var tree = el("ul", "ffrd-files__tree");
+    tree.append(build(data.root, 0));
+    var root = toggles[toggles.length - 1];   // pushed last: its children are built first
+
+    var bar = el("div", "ffrd__bar");
+    var expand = el("button", "ffrd__btn", "Expand all");
+    var collapse = el("button", "ffrd__btn", "Collapse all");
+    expand.type = collapse.type = "button";
+    expand.addEventListener("click", function () { toggles.forEach(function (t) { setOpen(t, true); }); });
+    collapse.addEventListener("click", function () { toggles.forEach(function (t) { setOpen(t, t === root); }); });
+    bar.append(expand, collapse, el("span", "ffrd__count",
+      folders + " folders, " + files + (files === 1 ? " file" : " files")));
+    host.replaceChildren(bar, tree);
+  }
+
+  function start() { init(); initFiles(); }
+  if (window.document$ && document$.subscribe) document$.subscribe(start);
+  else if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
 })();

@@ -18,7 +18,7 @@
 .md-typeset .ffrd__kids { margin-left: .7rem; padding-left: .5rem; border-left: 1px solid var(--ffrd-line); }
 .ffrd__item[hidden], .ffrd__kids[hidden] { display: none; }
 
-.ffrd__row { display: flex; align-items: baseline; gap: .6rem; width: 100%; box-sizing: border-box; padding: .22rem .5rem .22rem 1.3rem; position: relative; font: inherit; font-size: .74rem; text-align: left; color: inherit; background: none; border: 0; border-radius: .15rem; cursor: pointer; }
+.ffrd__row { display: flex; align-items: center; gap: .4rem; width: 100%; box-sizing: border-box; padding: .22rem .5rem .22rem 1.3rem; position: relative; font: inherit; font-size: .74rem; text-align: left; color: inherit; background: none; border: 0; border-radius: .15rem; cursor: pointer; }
 .ffrd__row:hover { background: var(--ffrd-line); }
 .ffrd__row:focus-visible { outline: 2px solid var(--md-accent-fg-color); outline-offset: -2px; }
 .ffrd__row.is-selected { background: var(--ffrd-sel); box-shadow: inset 2px 0 0 var(--md-accent-fg-color); }
@@ -46,3 +46,35 @@
 .ffrd__empty, .ffrd__note { color: var(--md-default-fg-color--light); }
 .md-typeset .ffrd__files { margin: 1rem 0 0; font-size: .72rem; color: var(--md-default-fg-color--light); }
 .md-typeset .ffrd__actions { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 0; }
+
+/* Names-only tree in the Templates section */
+.md-typeset .ffrd-files__tree { max-height: 70vh; overflow: auto; margin: 0; padding: .4rem; list-style: none; border: 1px solid var(--ffrd-edge); border-radius: .2rem; }
+.md-typeset .ffrd-files__tree ul, .md-typeset .ffrd-files__tree li { list-style: none; margin: 0; padding: 0; }
+.md-typeset .ffrd-files__kids { margin-left: .7rem; padding-left: .5rem; border-left: 1px solid var(--ffrd-line); }
+.ffrd-files__kids[hidden] { display: none; }
+
+.ffrd-files__row { display: flex; align-items: center; gap: .4rem; width: 100%; box-sizing: border-box; padding: .18rem .5rem .18rem 1.3rem; position: relative; font: inherit; font-family: var(--md-code-font-family, monospace); font-size: .74rem; text-align: left; color: inherit; background: none; border: 0; border-radius: .15rem; }
+button.ffrd-files__row { cursor: pointer; }
+button.ffrd-files__row:hover { background: var(--ffrd-line); }
+.ffrd-files__row:focus-visible { outline: 2px solid var(--md-accent-fg-color); outline-offset: -2px; }
+.ffrd-files__row.is-file { color: var(--md-default-fg-color--light); }
+
+button.ffrd-files__row::before { content: ""; position: absolute; left: .5rem; top: .5rem; width: .38rem; height: .38rem; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); opacity: .6; }
+button.ffrd-files__row[aria-expanded="true"]::before { transform: rotate(45deg); top: .4rem; }
+@media (prefers-reduced-motion: no-preference) { button.ffrd-files__row::before { transition: transform .12s; } }
+
+/* Folder and file icons, used by both trees */
+.ffrd-icon { flex: none; width: .9rem; height: .9rem; background: currentColor; -webkit-mask: var(--ffrd-icon) center / contain no-repeat; mask: var(--ffrd-icon) center / contain no-repeat; }
+.ffrd-icon--folder { color: var(--md-accent-fg-color); --ffrd-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 4H4c-1.11 0-2 .89-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>'); }
+.ffrd-icon--file { --ffrd-icon: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13z"/></svg>'); }
+
+/* Download button with a small-print note beside it (wraps below on narrow screens) */
+.ffrd-download { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.2rem; margin: 1em 0; }
+.md-typeset .ffrd-download .md-button { flex: none; }
+.md-typeset .ffrd-footnote { flex: 1 1 16rem; max-width: 30rem; margin: 0; font-size: .62rem; font-style: italic; line-height: 1.5; color: var(--md-default-fg-color--light); opacity: .8; }
+.md-typeset .ffrd-footnote code { font-style: normal; font-size: .95em; }
+
+/* Keep the site name in the header bar. Material otherwise swaps it for the page heading
+   once that scrolls out of view. */
+.md-header__topic + .md-header__topic { display: none; }
+.md-header__title--active .md-header__topic { opacity: 1; pointer-events: auto; transform: none; z-index: 0; }
